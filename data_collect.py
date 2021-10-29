@@ -18,7 +18,7 @@ MARKER_TOPIC = "/visualization_marker"
 IMAGE_STATE_TOPIC = "/cam_1/color/image_raw"
 
 CAMERA_INTRINSICS_MATRIX = [916.500732421875, 0.0, 630.3333129882812, 0.0, 916.3279418945312, 358.1403503417969, 0.0, 0.0, 1.0]
-KINOVA_ARM_POSITION = [364.5575866699219, 211.01708984375, 47.678035736083984, 198.78610229492188, 96.60987091064453, 230.55865478515625, 0]
+KINOVA_ARM_POSITION = [4.5575866699219, 211.01708984375, 47.678035736083984, 198.78610229492188, 96.60987091064453, 230.55865478515625, 0]
 
 class DemoCollector(object):
     def __init__(self, frequency = 5):
@@ -113,10 +113,6 @@ class DemoCollector(object):
 
                 state['cube_position_pixels'] = [ar_tracker_x_pixel, ar_tracker_y_pixel]
 
-                # Embedding the AR Tracker pixels
-                self.image = cv2.line(self.image, (ar_tracker_x_pixel, 0), (ar_tracker_x_pixel, 720), (255,255,0), 2)
-                self.image = cv2.line(self.image, (0, ar_tracker_y_pixel), (1280, ar_tracker_y_pixel), (255,255,0), 2)
-
                 state['image'] = self.image
 
                 # Storing data in a pickle file
@@ -124,6 +120,10 @@ class DemoCollector(object):
                 self.store_pickle_data(state_pickle_path, state)
 
                 state_number += 1
+
+                # Embedding the AR Tracker pixels
+                self.image = cv2.line(self.image, (ar_tracker_x_pixel, 0), (ar_tracker_x_pixel, 720), (255,255,0), 2)
+                self.image = cv2.line(self.image, (0, ar_tracker_y_pixel), (1280, ar_tracker_y_pixel), (255,255,0), 2)
 
                 cv2.imshow("Image", self.image)
                 cv2.waitKey(1)

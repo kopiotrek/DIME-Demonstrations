@@ -10,6 +10,8 @@ def depickle_video(demo_folder_path):
 
     states.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
 
+    iter = 0
+
     for state in states:
         state_path = os.path.join(demo_folder_path, state)
 
@@ -17,10 +19,14 @@ def depickle_video(demo_folder_path):
 
         state_content = pickle.load(file)
 
+        
         image = state_content['image']
+        
+        if iter == 0:
+            print(state_content)
 
-        print('Obtained image from: {}'.format(state))
-
+        # print('Obtained image from: {}'.format(state))
+        iter += 1
         cv2.imshow('Recording', image)
         cv2.waitKey(1)
 
