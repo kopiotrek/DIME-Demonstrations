@@ -2,12 +2,9 @@ import os
 import pickle
 
 import torch
-
 import numpy as np
 
 from allegro_ik import AllegroInvKDL
-
-import numpy as np
 
 class FeatureExtractor():
     def __init__ (self, storage_dir):
