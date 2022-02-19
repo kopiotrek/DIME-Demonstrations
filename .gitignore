@@ -1,3 +1,7 @@
-Failures/*
-Success/*
-output_video.avi
+final_data/*
+fresh_data/*
+old_scripts/*
+original_data/*
+resampled_data/*
+__pycache__/*
+.vscode/*
