@@ -4,9 +4,10 @@ from typing import final
 from core.demo_resampler import StateExtractor
 from core.feature_extractor import FeatureExtractor
 
-RESAMPLE_BASE_DIR = os.path.join(os.getcwd(), "resampled_data")
-FINAL_BASE_DIR = os.path.join(os.getcwd(), "final_data")
-INPUT_BASE_DIR = os.path.join(os.getcwd(), "original_data")
+RESAMPLE_BASE_DIR = os.path.join(os.getcwd(), "resampled_data_sample")
+FINAL_BASE_DIR = os.path.join(os.getcwd(), "final_data_sample")
+# INPUT_BASE_DIR = os.path.join(os.getcwd(), "original_data")
+INPUT_BASE_DIR = os.path.join(os.getcwd(), "temp_data")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--task', type=str)

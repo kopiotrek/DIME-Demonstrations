@@ -37,6 +37,7 @@ class StateExtractor():
 
         for state_name in states_list:
             state_path = os.path.join(demo_path, state_name)
+            print("Looking at ", state_path)
 
             state_file = open(state_path, "rb")
             state_data = pickle.load(state_file)

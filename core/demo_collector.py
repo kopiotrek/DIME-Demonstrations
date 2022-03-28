@@ -1,6 +1,9 @@
 import os
 import pickle
 
+from cv2 import ROTATE_180
+import rospy
+
 import rospy
 import cv2
 import numpy as np
@@ -19,7 +22,7 @@ MEDIAPIPE_RGB_IMG_TOPIC = '/mediapipe_rgb_image'
 MEDIAPIPE_DEPTH_IMG_TOPIC = '/mediapipe_depth_image'
 
 # Robot data
-JOINT_STATE_TOPIC = "/allegroHand_0/joint_states"
+JOINT_STATE_TOPIC = "/allegroHand/joint_states"
 MARKER_TOPIC = "/visualization_marker"
 ROBOT_IMAGE_STATE_TOPIC = "/cam_1/color/image_raw"
 
@@ -58,9 +61,10 @@ class DemoCollector(object):
         self.robot_image = None
         self.pose_rgb_image = None
         self.mp_joint_coords = None
+        self.object_data = None
 
-        if self.task == "rotate" or self.task == "flip":
-            self.ar_marker_data = None
+        if self.task == "rotate":
+            self.hand_base_data = None
 
         self.storage_path = storage_path
 
@@ -80,12 +84,13 @@ class DemoCollector(object):
         # Robot data subscribers
         rospy.Subscriber(JOINT_STATE_TOPIC, JointState, self._callback_joint_state, queue_size = 1)
         rospy.Subscriber(ROBOT_IMAGE_STATE_TOPIC, Image, self._callback_robot_image, queue_size = 1)
-
-        if self.task == "rotate" or self.task == "flip":
-            rospy.Subscriber(MARKER_TOPIC, Marker, self._callback_ar_marker_data, queue_size = 1)
+        rospy.Subscriber(MARKER_TOPIC, Marker, self._callback_ar_marker_data, queue_size = 1)
 
     def _callback_ar_marker_data(self, data):
-        self.ar_marker_data = data
+        if data.id == 0 or data.id == 5:
+            self.object_data = data
+        elif data.id == 8:
+            self.hand_base_data = data
 
     def _callback_joint_state(self, data):
         self.allegro_joint_state = data
@@ -106,9 +111,14 @@ class DemoCollector(object):
             print(e)
 
     def get_ar_marker_data(self):
-        object_position = np.array([self.ar_marker_data.pose.position.x, self.ar_marker_data.pose.position.y, self.ar_marker_data.pose.position.z])
-        object_orientation = np.array([self.ar_marker_data.pose.orientation.x, self.ar_marker_data.pose.orientation.y, self.ar_marker_data.pose.orientation.z, self.ar_marker_data.pose.orientation.w])
-        return object_position, object_orientation
+        if self.task == "rotate":
+            object_position = np.array([self.object_data.pose.position.x, self.object_data.pose.position.y, self.object_data.pose.position.z]) - np.array([self.hand_base_data.pose.position.x, self.hand_base_data.pose.position.y, self.hand_base_data.pose.position.z])
+            object_orientation = np.array([self.object_data.pose.orientation.x, self.object_data.pose.orientation.y, self.object_data.pose.orientation.z, self.object_data.pose.orientation.w])
+            return object_position, object_orientation
+        elif self.task == "flip":
+            object_position = np.array([self.object_data.pose.position.x, self.object_data.pose.position.y, self.object_data.pose.position.z])
+            object_orientation = np.array([self.object_data.pose.orientation.x, self.object_data.pose.orientation.y, self.object_data.pose.orientation.z, self.object_data.pose.orientation.w])
+            return object_position, object_orientation
 
     def calculate_pixels(self, coordinates):
         pixel_values = np.matmul(self.intrinsics, np.array(coordinates))
@@ -127,19 +137,25 @@ class DemoCollector(object):
         demo_storage_path = os.path.join(self.storage_path, 'demonstration_{}'.format(demo_number))
         check_dir(demo_storage_path)
 
+        rospy.sleep(2)
+
         while True:
             if self.pose_rgb_image is None:
-                print("No hand pose RGB image")
+                # print("No hand pose RGB image")
                 continue
 
             if self.mp_joint_coords is None:
-                print("No Mediapipe Pixels predictions")
+                # print("No Mediapipe Pixels predictions")
                 continue
 
             if self.task == "rotate" or self.task == "flip":
-                if self.ar_marker_data is None:
-                    print("No AR Tracker value")
+                if self.object_data is None:
+                    print("Object not found")
                     continue
+
+            if self.task == "rotate":
+                if self.hand_base_data is None:
+                    print("Hand base tracker not found!")
             
             if self.allegro_joint_state is None:
                 print("No Joint State value")
@@ -160,7 +176,19 @@ class DemoCollector(object):
             # Object data
             if self.task == "rotate" or self.task == "flip":
                 state['object_position_coordinates'], state['object_orientation'] = self.get_ar_marker_data()
-                ar_tracker_x_pixel, ar_tracker_y_pixel = self.calculate_pixels(state['object_position_coordinates'])
+                ar_tracker_x_pixel, ar_tracker_y_pixel = self.calculate_pixels(np.array([
+                    self.object_data.pose.position.x,
+                    self.object_data.pose.position.y,
+                    self.object_data.pose.position.z
+                ]))
+
+                if self.task == "rotate":
+                    hand_base_x_pixel, hand_base_y_pixel = self.calculate_pixels(np.array([
+                        self.hand_base_data.pose.position.x,
+                        self.hand_base_data.pose.position.y,
+                        self.hand_base_data.pose.position.z
+                    ]))
+
                 state['object_position_pixels'] = [ar_tracker_x_pixel, ar_tracker_y_pixel]
 
             # Robot data
@@ -170,7 +198,7 @@ class DemoCollector(object):
 
             # Storing data in a pickle file
             state_pickle_path = os.path.join(demo_storage_path, '{}'.format(state_number))
-            self.store_pickle_data(state_pickle_path, state)
+            store_pickle_data(state_pickle_path, state)
 
             state_number += 1
 
@@ -179,7 +207,13 @@ class DemoCollector(object):
                 self.robot_image = cv2.line(self.robot_image, (ar_tracker_x_pixel, 0), (ar_tracker_x_pixel, 720), (255,255,0), 2)
                 self.robot_image = cv2.line(self.robot_image, (0, ar_tracker_y_pixel), (1280, ar_tracker_y_pixel), (255,255,0), 2)
 
-            cv2.imshow("Image", self.robot_image)
+            if self.task == "rotate":
+                self.robot_image = cv2.line(self.robot_image, (hand_base_x_pixel, 0), (hand_base_x_pixel, 720), (255,0,0), 2)
+                self.robot_image = cv2.line(self.robot_image, (0, hand_base_y_pixel), (1280, hand_base_y_pixel), (255,0,0), 2)
+
+            display_image = cv2.rotate(self.robot_image, cv2.ROTATE_180)
+
+            cv2.imshow("Image", display_image)
             cv2.waitKey(1)
 
             self.rate.sleep()

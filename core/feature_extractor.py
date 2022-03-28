@@ -52,7 +52,7 @@ class FeatureExtractor():
 
             # Object data
             if self.task == "rotate":
-                object_pos = np.array(state_data['cube_position_coordinates'])
+                object_pos = np.array(state_data['object_position_coordinates'])
             elif self.task == "flip":
                 object_pos = np.array(state_data['flipping_object_position_coordinates'])
             elif self.task == "spin":
