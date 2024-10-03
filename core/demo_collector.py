@@ -52,7 +52,7 @@ class DemoCollector(object):
         except:
             pass
 
-        self.allegro_ik = AllegroInvKDL(urdf_path = "/home/sridhar/dexterous_arm/ik_stuff/ik_teleop/urdf_template/allegro_right.urdf")
+        self.allegro_ik = AllegroInvKDL(urdf_path = "/home/vm/rpl/DIME-IK-TeleOp/ik_teleop/urdf_template/allegro_right.urdf")
 
         self.rate = rospy.Rate(frequency)
         self.task = task
